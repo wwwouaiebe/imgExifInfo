@@ -1,0 +1,2 @@
+# imgExifInfo
+plugin for Dotclear
