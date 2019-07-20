@@ -49,8 +49,12 @@ class imgExifInfoTpl extends dcTemplate
         if (isset($attr['title'])) {
 			$title = addslashes($attr['title']);
 		}
+		$addClass='0';
+        if (isset($attr['addClass'])) {
+			$addClass = $attr['addClass'];
+		}
 		
-		return '<?php echo  imgExifInfoTpl::AddExifInfo($_ctx->posts->getContent(\'0\'),\'' . $before . '\',\'' . $after . '\',\'' . $title . '\'); ?>';
+		return '<?php echo  imgExifInfoTpl::AddExifInfo($_ctx->posts->getContent(\'0\'),\'' . $before . '\',\'' . $after . '\',\'' . $title . '\',\'' . $addClass . '\'); ?>';
     }
     public static function ImgExifInfoExcerpt($attr)
     {
@@ -66,22 +70,46 @@ class imgExifInfoTpl extends dcTemplate
         if (isset($attr['title'])) {
 			$title = addslashes($attr['title']);
 		}
+		$addClass='0';
+        if (isset($attr['addClass'])) {
+			$addClass = $attr['addClass'];
+		}
 		
-		return '<?php echo  imgExifInfoTpl::AddExifInfo($_ctx->posts->getExcerpt(\'0\'),\'' . $before . '\',\'' . $after . '\',\'' . $title . '\'); ?>';
+		return '<?php echo  imgExifInfoTpl::AddExifInfo($_ctx->posts->getExcerpt(\'0\'),\'' . $before . '\',\'' . $after . '\',\'' . $title . '\',\'' . $addClass . '\'); ?>';
     }
 	
-    public static function AddExifInfo( $text, $before, $after, $title )
+    public static function AddExifInfo( $text, $before, $after, $title, $addClass )
 	{
 		$ImgsInfos = imgExifInfoTpl::SearchImgsInfo( $text );
 		foreach ( $ImgsInfos as $key => $imgInfo ) {
 			$exifData = imgExifInfoTpl::SearchExifData ( $imgInfo ['path'] );
 			$beforeImg .= imgExifInfoTpl::addExifData ( $before, $exifData );
 			$afterImg = imgExifInfoTpl::addExifData ( $after, $exifData );
-			$text = str_replace ( $imgInfo ['img'] , $beforeImg . $imgInfo ['img'] . $afterImg , $text );
+			$newImg = $imgInfo ['img'];
+			if ( !empty( $title ) ){
+				$newTitle = imgExifInfoTpl::addExifData ( $title, $exifData, $imgInfo [ 'title' ]  );
+				if ( $imgInfo [ hasTitle ] ) {
+					$newImg = str_replace ( $imgInfo [ 'title' ], $newTitle, $newImg );
+				}
+				else {
+					$newImg = str_replace ( '<img', '<img title=\'' . $newTitle . '\'' , $newImg );
+				}
+			}
+			if ( '0' != $addClass ) {
+				$classPrefix = ('1' == $addClass) ? '' : $addClass;
+				if ( $imgInfo [ hasClass ] ) {
+					$newImg = str_replace ( $imgInfo [ 'class' ], ' ' . $classPrefix . $exifData [ 'Class' ] , $newImg );
+				}
+				else{
+					$newImg = str_replace ( '<img', '<img class=\'' . $classPrefix . $exifData [ 'Class' ] . '\'' , $newImg );
+				}
+			}
+			$text = str_replace ( $imgInfo ['img'] , $beforeImg . $newImg . $afterImg , $text );
 		}
 		return $text;
 	}
-	public static function addExifData( $text, $exifData )
+	
+	public static function addExifData( $text, $exifData , $oldTitle )
 	{
 		$textArray = explode ( '%', $text);
 		$newText = '';
@@ -94,6 +122,11 @@ class imgExifInfoTpl extends dcTemplate
 				case 'ISOSpeedRatings':
 				case 'Make':
 					$newText .= $exifData [ $textPart ];
+					break;
+				case 'Title':
+					if ( !empty ( $oldTitle ) ) {
+						$newText .= $oldTitle;
+					}
 					break;
 				default:
 					$newText .= $textPart;
@@ -113,6 +146,8 @@ class imgExifInfoTpl extends dcTemplate
 			$imgPath = '';
 			$imgTitle = '';
 			$hasTitle = false;
+			$imgClass = '';
+			$hasClass = false;
 			if ( preg_match ( '/src=("|\')[^("|\')]*/msu', $img, $path ) )
 			{
 				if ( preg_match ( $p_url . '.*/msu', $path[0],$subpath ) )
@@ -125,7 +160,15 @@ class imgExifInfoTpl extends dcTemplate
 				$imgTitle = substr( $title [ 0 ],7 );
 				$hasTitle= true;
 			}
-			$results [] = array ( 'img' => $img, 'path' => $imgPath, 'title' => $imgTitle, 'hasTitle' => $hasTitle );
+			
+			if ( preg_match ( '/class=("|\')[^("|\')]*/msu', $img, $class ) ) 
+			{
+				$imgClass = substr( $class [ 0 ],7 );
+				$hasClass= true;
+			}
+			
+			
+			$results [] = array ( 'img' => $img, 'path' => $imgPath, 'title' => $imgTitle, 'hasTitle' => $hasTitle, 'class' => $imgClass, 'hasClass' => $hasClass );
 		}
 		unset ( $key );
 		
