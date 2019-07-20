@@ -31,21 +31,30 @@ $core->tpl->addValue('ImgExifInfoExcerpt', array('imgExifInfoTpl', 'ImgExifInfoE
 
 class imgExifInfoTpl extends dcTemplate
 {
+
+	/* __construct */
+
     public function __construct($cache_dir, $self_name, $core)
     {
         parent::__construct($cache_dir, $self_name, $core);
 	}
 	
+	/* ImgExifInfoContent */
+
     public static function ImgExifInfoContent($attr)
     {
 		return imgExifInfoTpl::ImgExifInfoStart ($attr, 'getContent' );
 	}
 	
+	/* ImgExifInfoExcerpt */
+
     public static function ImgExifInfoExcerpt($attr)
     {
 		return imgExifInfoTpl::ImgExifInfoStart ($attr, 'getExcerpt' );
     }
 	
+	/* ImgExifInfostart */
+
     public static function ImgExifInfostart($attr, $fct)
     {
 		$before = '';
@@ -68,17 +77,19 @@ class imgExifInfoTpl extends dcTemplate
 		return '<?php echo  imgExifInfoTpl::AddExifInfo($_ctx->posts->' . $fct . '(\'0\'),\'' . $before . '\',\'' . $after . '\',\'' . $title . '\',\'' . $addClass . '\'); ?>';
     }
 	
+	/* AddExifInfo */
+
     public static function AddExifInfo( $text, $before, $after, $title, $addClass )
 	{
-		$ImgsInfos = imgExifInfoTpl::SearchImgsInfo( $text );
-		foreach ( $ImgsInfos as $key => $imgInfo ) {
+		$imgsInfos = imgExifInfoTpl::SearchImgsInfo( $text );
+		foreach ( $imgsInfos as $key => $imgInfo ) {
 			$exifData = fileExifInfo::SearchExifData ( $imgInfo ['path'] );
 			if ( $exifData ['has_exif'] ) {
-				$beforeImg = imgExifInfoTpl::addExifData ( $before, $exifData );
-				$afterImg = imgExifInfoTpl::addExifData ( $after, $exifData );
+				$beforeImg = imgExifInfoTpl::AddExifData ( $before, $exifData );
+				$afterImg = imgExifInfoTpl::AddExifData ( $after, $exifData );
 				$newImg = $imgInfo ['img'];
 				if ( !empty( $title ) ){
-					$newTitle = imgExifInfoTpl::addExifData ( $title, $exifData, $imgInfo [ 'title' ]  );
+					$newTitle = imgExifInfoTpl::AddExifData ( $title, $exifData, $imgInfo [ 'title' ]  );
 					if ( $imgInfo [ hasTitle ] ) {
 						$newImg = str_replace ( $imgInfo [ 'title' ], $newTitle, $newImg );
 					}
@@ -101,7 +112,9 @@ class imgExifInfoTpl extends dcTemplate
 		return $text;
 	}
 	
-	public static function addExifData( $text, $exifData , $oldTitle )
+	/* AddExifData */
+
+	public static function AddExifData( $text, $exifData , $oldTitle )
 	{
 		$textArray = explode ( '%', $text);
 		$newText = '';
@@ -128,6 +141,8 @@ class imgExifInfoTpl extends dcTemplate
 		return $newText;
 	}
 	
+	/* SearchImgsInfo */
+
 	public static function SearchImgsInfo( $text )
 	{
 		global $core;
@@ -171,6 +186,8 @@ class imgExifInfoTpl extends dcTemplate
 if ( ! class_exists('fileExifInfo') ) {
 	class fileExifInfo 
 	{
+		/* SearchExifData */
+
 		public static function SearchExifData( $fi )
 		{
 			$mi = array(
