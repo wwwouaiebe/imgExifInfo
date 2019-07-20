@@ -35,28 +35,18 @@ class imgExifInfoTpl extends dcTemplate
     {
         parent::__construct($cache_dir, $self_name, $core);
 	}
+	
     public static function ImgExifInfoContent($attr)
     {
-		$before = '';
-        if (isset($attr['before'])) {
-			$before = addslashes($attr['before']);
-		}
-		$after = '';
-        if (isset($attr['after'])) {
-			$after = addslashes($attr['after']);
-		}
-		$title = '';
-        if (isset($attr['title'])) {
-			$title = addslashes($attr['title']);
-		}
-		$addClass='0';
-        if (isset($attr['addClass'])) {
-			$addClass = $attr['addClass'];
-		}
-		
-		return '<?php echo  imgExifInfoTpl::AddExifInfo($_ctx->posts->getContent(\'0\'),\'' . $before . '\',\'' . $after . '\',\'' . $title . '\',\'' . $addClass . '\'); ?>';
-    }
+		return imgExifInfoTpl::ImgExifInfoStart ($attr, 'getContent' );
+	}
+	
     public static function ImgExifInfoExcerpt($attr)
+    {
+		return imgExifInfoTpl::ImgExifInfoStart ($attr, 'getExcerpt' );
+    }
+	
+    public static function ImgExifInfostart($attr, $fct)
     {
 		$before = '';
         if (isset($attr['before'])) {
@@ -75,36 +65,38 @@ class imgExifInfoTpl extends dcTemplate
 			$addClass = $attr['addClass'];
 		}
 		
-		return '<?php echo  imgExifInfoTpl::AddExifInfo($_ctx->posts->getExcerpt(\'0\'),\'' . $before . '\',\'' . $after . '\',\'' . $title . '\',\'' . $addClass . '\'); ?>';
+		return '<?php echo  imgExifInfoTpl::AddExifInfo($_ctx->posts->' . $fct . '(\'0\'),\'' . $before . '\',\'' . $after . '\',\'' . $title . '\',\'' . $addClass . '\'); ?>';
     }
 	
     public static function AddExifInfo( $text, $before, $after, $title, $addClass )
 	{
 		$ImgsInfos = imgExifInfoTpl::SearchImgsInfo( $text );
 		foreach ( $ImgsInfos as $key => $imgInfo ) {
-			$exifData = imgExifInfoTpl::SearchExifData ( $imgInfo ['path'] );
-			$beforeImg .= imgExifInfoTpl::addExifData ( $before, $exifData );
-			$afterImg = imgExifInfoTpl::addExifData ( $after, $exifData );
-			$newImg = $imgInfo ['img'];
-			if ( !empty( $title ) ){
-				$newTitle = imgExifInfoTpl::addExifData ( $title, $exifData, $imgInfo [ 'title' ]  );
-				if ( $imgInfo [ hasTitle ] ) {
-					$newImg = str_replace ( $imgInfo [ 'title' ], $newTitle, $newImg );
+			$exifData = fileExifInfo::SearchExifData ( $imgInfo ['path'] );
+			if ( $exifData ['has_exif'] ) {
+				$beforeImg = imgExifInfoTpl::addExifData ( $before, $exifData );
+				$afterImg = imgExifInfoTpl::addExifData ( $after, $exifData );
+				$newImg = $imgInfo ['img'];
+				if ( !empty( $title ) ){
+					$newTitle = imgExifInfoTpl::addExifData ( $title, $exifData, $imgInfo [ 'title' ]  );
+					if ( $imgInfo [ hasTitle ] ) {
+						$newImg = str_replace ( $imgInfo [ 'title' ], $newTitle, $newImg );
+					}
+					else {
+						$newImg = str_replace ( '<img', '<img title=\'' . $newTitle . '\'' , $newImg );
+					}
 				}
-				else {
-					$newImg = str_replace ( '<img', '<img title=\'' . $newTitle . '\'' , $newImg );
+				if ( '0' != $addClass ) {
+					$classPrefix = ('1' == $addClass) ? '' : $addClass;
+					if ( $imgInfo [ hasClass ] ) {
+						$newImg = str_replace ( $imgInfo [ 'class' ], $imgInfo [ 'class' ] . ' ' . $classPrefix . $exifData [ 'Class' ] , $newImg );
+					}
+					else{
+						$newImg = str_replace ( '<img', '<img class=\'' . $classPrefix . $exifData [ 'Class' ] . '\'' , $newImg );
+					}
 				}
+				$text = str_replace ( $imgInfo ['img'] , $beforeImg . $newImg . $afterImg , $text );
 			}
-			if ( '0' != $addClass ) {
-				$classPrefix = ('1' == $addClass) ? '' : $addClass;
-				if ( $imgInfo [ hasClass ] ) {
-					$newImg = str_replace ( $imgInfo [ 'class' ], ' ' . $classPrefix . $exifData [ 'Class' ] , $newImg );
-				}
-				else{
-					$newImg = str_replace ( '<img', '<img class=\'' . $classPrefix . $exifData [ 'Class' ] . '\'' , $newImg );
-				}
-			}
-			$text = str_replace ( $imgInfo ['img'] , $beforeImg . $newImg . $afterImg , $text );
 		}
 		return $text;
 	}
@@ -173,160 +165,139 @@ class imgExifInfoTpl extends dcTemplate
 		unset ( $key );
 		
 		return $results;
-	}
-	
-    public static function SearchExifData( $fi )
-	{
-		$mi = array(
-			'RelUrl' => 'public/' . $fi,
-			'Class' => 'Landscape',
-			'ExposureTime' => '',
-			'FNumber' => '',
-			'FocalLength' => '',
-			'ISOSpeedRatings' => '',
-			'Make' => '',
-			'Model' => '',
-			'DateTimeOriginal' => '',
-			'has_exif' => false,
-			'ThumbnailUrl' => '',
-			'Size' => '0',
-			'MimeType' => '',
-			'FileName' =>'',
-			'has_thumbnail' =>false,
-			'is_jpg' => false,
-			'is_tiff' => false
-		);
-		if ( file_exists($mi['RelUrl']) )
-		{
-			$path_parts = pathinfo($mi['RelUrl']);
-			$ThumbnailUrl = $path_parts['dirname'] . '/' . $path_parts['filename'] . '_s.' . $path_parts['extension'];
-			$ext = strtoupper ( $path_parts['extension'] );
-			if ( 'JPG' != $ext && 'JPEG' != $ext && 'TIF' != $ext && 'TIFF' != $ext ) {
-				return $mi;
-			}
-			if ( 'JPG' == $ext || 'JPEG' == $ext ) {
-				$mi['is_jpg'] = true;
-			}
-			else {
-				$mi['is_tiff'] = true;
-			}
-			if ( file_exists($ThumbnailUrl) )
-			{
-				$mi['ThumbnailUrl'] = $ThumbnailUrl;
-				$mi['has_thumbnail'] = true;
-			}
+	}	
+}
 
-			$exif = exif_read_data($mi['RelUrl'], 'ANY_TAG', true );
-			if ( $exif )
+if ( ! class_exists('fileExifInfo') ) {
+	class fileExifInfo 
+	{
+		public static function SearchExifData( $fi )
+		{
+			$mi = array(
+				'RelUrl' => 'public/' . $fi,
+				'Class' => 'Landscape',
+				'ExposureTime' => '',
+				'FNumber' => '',
+				'FocalLength' => '',
+				'ISOSpeedRatings' => '',
+				'Make' => '',
+				'Model' => '',
+				'DateTimeOriginal' => '',
+				'has_exif' => false,
+				'ThumbnailUrl' => '',
+				'Size' => '0',
+				'MimeType' => '',
+				'FileName' =>'',
+				'has_thumbnail' =>false,
+				'is_jpg' => false,
+				'is_tiff' => false
+			);
+			if ( file_exists($mi['RelUrl']) )
 			{
-				if ( $exif[ 'FILE'] )
-				{
-					if (!empty($exif[ 'FILE']['FileSize']))
-					{
-						$mi['Size'] = $exif[ 'FILE']['FileSize'];
-					}
-					if (!empty($exif[ 'FILE']['MimeType']))
-					{
-						$mi['MimeType'] = $exif[ 'FILE']['MimeType'];
-					}
-					if (!empty($exif[ 'FILE']['FileName']))
-					{
-						$mi['FileName'] = $exif[ 'FILE']['FileName'];
-					}
+				$path_parts = pathinfo($mi['RelUrl']);
+				$ThumbnailUrl = $path_parts['dirname'] . '/' . $path_parts['filename'] . '_s.' . $path_parts['extension'];
+				$ext = strtoupper ( $path_parts['extension'] );
+				if ( 'JPG' != $ext && 'JPEG' != $ext && 'TIF' != $ext && 'TIFF' != $ext ) {
+					return $mi;
 				}
-				if ( $exif[ 'COMPUTED'] && $exif[ 'COMPUTED']['Height'] && $exif[ 'COMPUTED']['Width'] )
-				{
-					$mi['Class'] = $exif[ 'COMPUTED']['Height'] > $exif[ 'COMPUTED']['Width'] ? "Portrait" : "Landscape";
+				if ( 'JPG' == $ext || 'JPEG' == $ext ) {
+					$mi['is_jpg'] = true;
 				}
-				if ( $exif[ 'IFD0'] )
-				{
-					if (!empty($exif[ 'IFD0']['Make']))
-					{
-						$mi['Make'] = $exif[ 'IFD0']['Make'];
-					}
-					if (!empty($exif[ 'IFD0']['Model']))
-					{
-						$mi['Model'] = $exif[ 'IFD0']['Model'];
-					}
+				else {
+					$mi['is_tiff'] = true;
 				}
-				if ( $exif[ 'EXIF'] )
+				if ( file_exists($ThumbnailUrl) )
 				{
-					if (!empty($exif[ 'EXIF']['FNumber']))
+					$mi['ThumbnailUrl'] = $ThumbnailUrl;
+					$mi['has_thumbnail'] = true;
+				}
+
+				$exif = exif_read_data($mi['RelUrl'], 'ANY_TAG', true );
+				if ( $exif )
+				{
+					if ( $exif[ 'FILE'] )
 					{
-						$fl = sscanf($exif[ 'EXIF']['FNumber'],'%d/%d');
-						$mi['FNumber'] = $fl && $fl[0] && $fl[1] ? $fl[0]/$fl[1].'' : $exif[ 'EXIF']['FNumber'];
-					}
-					if (!empty($exif[ 'EXIF']['ExposureTime']))
-					{
-						$fl = sscanf($exif[ 'EXIF']['ExposureTime'],'%d/%d');
-						if ( $fl && $fl[0] && $fl[1] )
+						if (!empty($exif[ 'FILE']['FileSize']))
 						{
-							if ( $fl[0] == $fl[1] )
+							$mi['Size'] = $exif[ 'FILE']['FileSize'];
+						}
+						if (!empty($exif[ 'FILE']['MimeType']))
+						{
+							$mi['MimeType'] = $exif[ 'FILE']['MimeType'];
+						}
+						if (!empty($exif[ 'FILE']['FileName']))
+						{
+							$mi['FileName'] = $exif[ 'FILE']['FileName'];
+						}
+					}
+					if ( $exif[ 'COMPUTED'] && $exif[ 'COMPUTED']['Height'] && $exif[ 'COMPUTED']['Width'] )
+					{
+						$mi['Class'] = $exif[ 'COMPUTED']['Height'] > $exif[ 'COMPUTED']['Width'] ? "Portrait" : "Landscape";
+					}
+					if ( $exif[ 'IFD0'] )
+					{
+						if (!empty($exif[ 'IFD0']['Make']))
+						{
+							$mi['Make'] = $exif[ 'IFD0']['Make'];
+						}
+						if (!empty($exif[ 'IFD0']['Model']))
+						{
+							$mi['Model'] = $exif[ 'IFD0']['Model'];
+						}
+					}
+					if ( $exif[ 'EXIF'] )
+					{
+						if (!empty($exif[ 'EXIF']['FNumber']))
+						{
+							$fl = sscanf($exif[ 'EXIF']['FNumber'],'%d/%d');
+							$mi['FNumber'] = $fl && $fl[0] && $fl[1] ? $fl[0]/$fl[1].'' : $exif[ 'EXIF']['FNumber'];
+						}
+						if (!empty($exif[ 'EXIF']['ExposureTime']))
+						{
+							$fl = sscanf($exif[ 'EXIF']['ExposureTime'],'%d/%d');
+							if ( $fl && $fl[0] && $fl[1] )
 							{
-								$mi['ExposureTime'] = '1';
-							}
-							else if ( $fl[0] > $fl[1] )
-							{
-								$mi['ExposureTime'] = sprintf ( '%d',  $fl[0]/ $fl[1] );
+								if ( $fl[0] == $fl[1] )
+								{
+									$mi['ExposureTime'] = '1';
+								}
+								else if ( $fl[0] > $fl[1] )
+								{
+									$mi['ExposureTime'] = sprintf ( '%d',  $fl[0]/ $fl[1] );
+								}
+								else
+								{
+									$mi['ExposureTime'] = $exif[ 'EXIF']['ExposureTime'];
+								}
 							}
 							else
 							{
 								$mi['ExposureTime'] = $exif[ 'EXIF']['ExposureTime'];
 							}
 						}
-						else
+						if (!empty($exif[ 'EXIF']['ISOSpeedRatings']))
 						{
-							$mi['ExposureTime'] = $exif[ 'EXIF']['ExposureTime'];
+							$mi['ISOSpeedRatings'] = $exif[ 'EXIF']['ISOSpeedRatings'];
+						}
+						if (!empty($exif[ 'EXIF']['FocalLength']))
+						{
+							$fl = sscanf($exif[ 'EXIF']['FocalLength'],'%d/%d');
+							$mi['FocalLength'] = $fl && $fl[0] && $fl[1] ? sprintf ( '%d',  $fl[0]/ $fl[1] ) : $im['FocalLength'];
+						}
+						if (!empty($exif[ 'EXIF']['DateTimeOriginal']))
+						{
+							$mi['DateTimeOriginal'] = $exif[ 'EXIF']['DateTimeOriginal'];
 						}
 					}
-					if (!empty($exif[ 'EXIF']['ISOSpeedRatings']))
-					{
-						$mi['ISOSpeedRatings'] = $exif[ 'EXIF']['ISOSpeedRatings'];
-					}
-					if (!empty($exif[ 'EXIF']['FocalLength']))
-					{
-						$fl = sscanf($exif[ 'EXIF']['FocalLength'],'%d/%d');
-						$mi['FocalLength'] = $fl && $fl[0] && $fl[1] ? sprintf ( '%d',  $fl[0]/ $fl[1] ) : $im['FocalLength'];
-					}
-					if (!empty($exif[ 'EXIF']['DateTimeOriginal']))
-					{
-						$mi['DateTimeOriginal'] = $exif[ 'EXIF']['DateTimeOriginal'];
-					}
 				}
-			}
+				
+				if ( !empty($mi['ISOSpeedRatings']) && !empty($mi['FocalLength']) && !empty($mi['FNumber']) && !empty($mi['ExposureTime']) )
+				{
+					$mi['has_exif'] = true;
+				}			
+			} 
 			
-			if ( !empty($mi['ISOSpeedRatings']) && !empty($mi['FocalLength']) && !empty($mi['FNumber']) && !empty($mi['ExposureTime']) )
-			{
-				$mi['has_exif'] = true;
-			}			
-		} 
-		
-		return $mi;
-	}
-	
+			return $mi;
+		}
+	}	
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
