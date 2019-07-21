@@ -83,30 +83,33 @@ class imgExifInfoTpl extends dcTemplate
 	{
 		$imgsInfos = imgExifInfoTpl::SearchImgsInfo( $text );
 		foreach ( $imgsInfos as $key => $imgInfo ) {
-			$exifData = fileExifInfo::SearchExifData ( $imgInfo ['path'] );
-			if ( $exifData ['has_exif'] ) {
-				$beforeImg = imgExifInfoTpl::AddExifData ( $before, $exifData );
-				$afterImg = imgExifInfoTpl::AddExifData ( $after, $exifData );
-				$newImg = $imgInfo ['img'];
-				if ( !empty( $title ) ){
-					$newTitle = imgExifInfoTpl::AddExifData ( $title, $exifData, $imgInfo [ 'title' ]  );
-					if ( $imgInfo [ hasTitle ] ) {
-						$newImg = str_replace ( $imgInfo [ 'title' ], $newTitle, $newImg );
+			if ( preg_match ( '#/public.*#msu', $imgInfo ['path'], $subpath ) ){
+				$filePath = getcwd() . $subpath[0];
+				$exifData = fileExifInfo::SearchExifData ( $filePath );
+				if ( $exifData ['has_exif'] ) {
+					$beforeImg = imgExifInfoTpl::AddExifData ( $before, $exifData );
+					$afterImg = imgExifInfoTpl::AddExifData ( $after, $exifData );
+					$newImg = $imgInfo ['img'];
+					if ( !empty( $title ) ){
+						$newTitle = imgExifInfoTpl::AddExifData ( $title, $exifData, $imgInfo [ 'title' ]  );
+						if ( $imgInfo [ hasTitle ] ) {
+							$newImg = str_replace ( $imgInfo [ 'title' ], $newTitle, $newImg );
+						}
+						else {
+							$newImg = str_replace ( '<img', '<img title=\'' . $newTitle . '\'' , $newImg );
+						}
 					}
-					else {
-						$newImg = str_replace ( '<img', '<img title=\'' . $newTitle . '\'' , $newImg );
+					if ( '0' != $addClass ) {
+						$classPrefix = ('1' == $addClass) ? '' : $addClass;
+						if ( $imgInfo [ hasClass ] ) {
+							$newImg = str_replace ( $imgInfo [ 'class' ], $imgInfo [ 'class' ] . ' ' . $classPrefix . $exifData [ 'Class' ] , $newImg );
+						}
+						else{
+							$newImg = str_replace ( '<img', '<img class=\'' . $classPrefix . $exifData [ 'Class' ] . '\'' , $newImg );
+						}
 					}
+					$text = str_replace ( $imgInfo ['img'] , $beforeImg . $newImg . $afterImg , $text );
 				}
-				if ( '0' != $addClass ) {
-					$classPrefix = ('1' == $addClass) ? '' : $addClass;
-					if ( $imgInfo [ hasClass ] ) {
-						$newImg = str_replace ( $imgInfo [ 'class' ], $imgInfo [ 'class' ] . ' ' . $classPrefix . $exifData [ 'Class' ] , $newImg );
-					}
-					else{
-						$newImg = str_replace ( '<img', '<img class=\'' . $classPrefix . $exifData [ 'Class' ] . '\'' , $newImg );
-					}
-				}
-				$text = str_replace ( $imgInfo ['img'] , $beforeImg . $newImg . $afterImg , $text );
 			}
 		}
 		return $text;
@@ -146,7 +149,7 @@ class imgExifInfoTpl extends dcTemplate
 	public static function SearchImgsInfo( $text )
 	{
 		global $core;
-		$p_url = $core->blog->settings->system->public_url; //= /public
+		$p_url = $core->blog->settings->system->public_url;
 		preg_match_all( '/<img[^>]*>/msu', $text, $imgs );
 		$results = array ( );
 		foreach ( $imgs[0] as $key => $img ) {
@@ -157,9 +160,9 @@ class imgExifInfoTpl extends dcTemplate
 			$hasClass = false;
 			if ( preg_match ( '/src=("|\')[^("|\')]*/msu', $img, $path ) )
 			{
-				if ( preg_match ( $p_url . '.*/msu', $path[0],$subpath ) )
+				if ( preg_match ( '#' . preg_quote( $p_url ) . '.*#msu', $path[0], $subpath ) )
 				{
-					$imgPath = str_replace ('\\', '/', substr ( $subpath [ 0 ], strlen ( $p_url ) ) );
+					$imgPath = str_replace ('\\', '/', $subpath [ 0 ] );
 				}
 			}
 			if ( preg_match ( '/title=("|\')[^("|\')]*/msu', $img, $title ) ) 
@@ -191,7 +194,7 @@ if ( ! class_exists('fileExifInfo') ) {
 		public static function SearchExifData( $fi )
 		{
 			$mi = array(
-				'RelUrl' => 'public/' . $fi,
+				'RelUrl' => $fi,
 				'Class' => 'Landscape',
 				'ExposureTime' => '',
 				'FNumber' => '',
@@ -201,7 +204,7 @@ if ( ! class_exists('fileExifInfo') ) {
 				'Model' => '',
 				'DateTimeOriginal' => '',
 				'has_exif' => false,
-				'ThumbnailUrl' => '',
+				'ThumbnailUrl' => 'a',
 				'Size' => '0',
 				'MimeType' => '',
 				'FileName' =>'',

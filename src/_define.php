@@ -28,7 +28,7 @@ if (!defined('DC_RC_PATH')) {return;}
 
 $this->registerModule(
     "imgExifInfo", // Name
-    "Manage post img", // Description
+    "Post img exif data search", // Description
     "wwwouaiebe", // Author
     '1.0.0', // Version
     array(
