@@ -195,7 +195,7 @@ if ( ! class_exists('fileExifInfo') ) {
 		{
 			$mi = array(
 				'RelUrl' => $fi,
-				'Class' => 'Landscape',
+				'Class' => '',
 				'ExposureTime' => '',
 				'FNumber' => '',
 				'FocalLength' => '',
@@ -204,7 +204,7 @@ if ( ! class_exists('fileExifInfo') ) {
 				'Model' => '',
 				'DateTimeOriginal' => '',
 				'has_exif' => false,
-				'ThumbnailUrl' => 'a',
+				'ThumbnailRelUrl' => '',
 				'Size' => '0',
 				'MimeType' => '',
 				'FileName' =>'',
@@ -215,7 +215,7 @@ if ( ! class_exists('fileExifInfo') ) {
 			if ( file_exists($mi['RelUrl']) )
 			{
 				$path_parts = pathinfo($mi['RelUrl']);
-				$ThumbnailUrl = $path_parts['dirname'] . '/' . $path_parts['filename'] . '_s.' . $path_parts['extension'];
+				$ThumbnailRelUrl = $path_parts['dirname'] . '/' . $path_parts['filename'] . '_s.' . $path_parts['extension'];
 				$ext = strtoupper ( $path_parts['extension'] );
 				if ( 'JPG' != $ext && 'JPEG' != $ext && 'TIF' != $ext && 'TIFF' != $ext ) {
 					return $mi;
@@ -226,9 +226,9 @@ if ( ! class_exists('fileExifInfo') ) {
 				else {
 					$mi['is_tiff'] = true;
 				}
-				if ( file_exists($ThumbnailUrl) )
+				if ( file_exists($ThumbnailRelUrl) )
 				{
-					$mi['ThumbnailUrl'] = $ThumbnailUrl;
+					$mi['ThumbnailRelUrl'] = $ThumbnailRelUrl;
 					$mi['has_thumbnail'] = true;
 				}
 
