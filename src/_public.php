@@ -206,6 +206,7 @@ if ( ! class_exists('fileExifInfo') ) {
 				'has_exif' => false,
 				'ThumbnailRelUrl' => '',
 				'Size' => '0',
+				'Html' => '',
 				'MimeType' => '',
 				'FileName' =>'',
 				'has_thumbnail' =>false,
@@ -250,9 +251,14 @@ if ( ! class_exists('fileExifInfo') ) {
 							$mi['FileName'] = $exif[ 'FILE']['FileName'];
 						}
 					}
-					if ( $exif[ 'COMPUTED'] && $exif[ 'COMPUTED']['Height'] && $exif[ 'COMPUTED']['Width'] )
-					{
-						$mi['Class'] = $exif[ 'COMPUTED']['Height'] > $exif[ 'COMPUTED']['Width'] ? "Portrait" : "Landscape";
+					if ( $exif[ 'COMPUTED'] ) {
+						if ( $exif[ 'COMPUTED']['Height'] && $exif[ 'COMPUTED']['Width'] )
+						{
+							$mi['Class'] =  $exif[ 'COMPUTED']['Height'] == $exif[ 'COMPUTED']['Width'] ? 'Square' : ( $exif[ 'COMPUTED']['Height'] > $exif[ 'COMPUTED']['Width'] ? "Portrait" : "Landscape" );
+						}
+						if ( $exif[ 'COMPUTED']['html'] ) {
+							$mi['Html'] = $exif[ 'COMPUTED']['html'];
+						}
 					}
 					if ( $exif[ 'IFD0'] )
 					{
