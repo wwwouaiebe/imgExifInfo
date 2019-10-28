@@ -87,8 +87,8 @@ class imgExifInfoTpl extends dcTemplate
 				$filePath = getcwd() . $subpath[0];
 				$exifData = fileExifInfo::SearchExifData ( $filePath );
 				if ( $exifData ['has_exif'] ) {
-					$beforeImg = imgExifInfoTpl::AddExifData ( $before, $exifData );
-					$afterImg = imgExifInfoTpl::AddExifData ( $after, $exifData );
+					$beforeImg = imgExifInfoTpl::AddExifData ( $before, $exifData, '' );
+					$afterImg = imgExifInfoTpl::AddExifData ( $after, $exifData, '' );
 					$newImg = $imgInfo ['img'];
 					if ( !empty( $title ) ){
 						$newTitle = imgExifInfoTpl::AddExifData ( $title, $exifData, $imgInfo [ 'title' ]  );
