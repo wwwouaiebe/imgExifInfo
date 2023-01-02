@@ -26,17 +26,17 @@
 
 if (!defined('DC_RC_PATH')) {return;}
 
-$core->tpl->addValue('ImgExifInfoContent', array('imgExifInfoTpl', 'ImgExifInfoContent'));
-$core->tpl->addValue('ImgExifInfoExcerpt', array('imgExifInfoTpl', 'ImgExifInfoExcerpt'));
+dcCore::app()->tpl->addValue('ImgExifInfoContent', array('imgExifInfoTpl', 'ImgExifInfoContent'));
+dcCore::app()->tpl->addValue('ImgExifInfoExcerpt', array('imgExifInfoTpl', 'ImgExifInfoExcerpt'));
 
 class imgExifInfoTpl extends dcTemplate
 {
 
 	/* __construct */
 
-    public function __construct($cache_dir, $self_name, $core)
+    public function __construct($cache_dir, $self_name)
     {
-        parent::__construct($cache_dir, $self_name, $core);
+        parent::__construct($cache_dir, $self_name, dcCore::app());
 	}
 	
 	/* ImgExifInfoContent */
@@ -74,7 +74,7 @@ class imgExifInfoTpl extends dcTemplate
 			$addClass = $attr['addClass'];
 		}
 		
-		return '<?php echo  imgExifInfoTpl::AddExifInfo($_ctx->posts->' . $fct . '(\'0\'),\'' . $before . '\',\'' . $after . '\',\'' . $title . '\',\'' . $addClass . '\'); ?>';
+		return '<?php echo  imgExifInfoTpl::AddExifInfo(dcCore::app()->ctx->posts->' . $fct . '(\'0\'),\'' . $before . '\',\'' . $after . '\',\'' . $title . '\',\'' . $addClass . '\'); ?>';
     }
 	
 	/* AddExifInfo */
@@ -92,7 +92,7 @@ class imgExifInfoTpl extends dcTemplate
 					$newImg = $imgInfo ['img'];
 					if ( !empty( $title ) ){
 						$newTitle = imgExifInfoTpl::AddExifData ( $title, $exifData, $imgInfo [ 'title' ]  );
-						if ( $imgInfo [ hasTitle ] ) {
+						if ( $imgInfo [ 'hasTitle' ] ) {
 							$newImg = str_replace ( $imgInfo [ 'title' ], $newTitle, $newImg );
 						}
 						else {
@@ -101,7 +101,7 @@ class imgExifInfoTpl extends dcTemplate
 					}
 					if ( '0' != $addClass ) {
 						$classPrefix = ('1' == $addClass) ? '' : $addClass;
-						if ( $imgInfo [ hasClass ] ) {
+						if ( $imgInfo [ 'hasClass' ] ) {
 							$newImg = str_replace ( $imgInfo [ 'class' ], $imgInfo [ 'class' ] . ' ' . $classPrefix . $exifData [ 'Class' ] , $newImg );
 						}
 						else{
@@ -148,8 +148,6 @@ class imgExifInfoTpl extends dcTemplate
 
 	public static function SearchImgsInfo( $text )
 	{
-		global $core;
-		$p_url = $core->blog->settings->system->public_url;
 		preg_match_all( '/<img[^>]*>/msu', $text, $imgs );
 		$results = array ( );
 		foreach ( $imgs[0] as $key => $img ) {
@@ -160,7 +158,7 @@ class imgExifInfoTpl extends dcTemplate
 			$hasClass = false;
 			if ( preg_match ( '/src=("|\')[^("|\')]*/msu', $img, $path ) )
 			{
-				if ( preg_match ( '#' . preg_quote( $p_url ) . '.*#msu', $path[0], $subpath ) )
+				if ( preg_match ( '#' . preg_quote( dcCore::app()->blog->settings->system->public_url ) . '.*#msu', $path[0], $subpath ) )
 				{
 					$imgPath = str_replace ('\\', '/', $subpath [ 0 ] );
 				}
